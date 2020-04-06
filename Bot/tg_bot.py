@@ -211,14 +211,14 @@ async def handle_email(message: types.Message):
             'email': customer_email,
         }
     }
-    if await get_moltin_customer_id(customer_key):
+    if await get_moltin_customer_id_from_db(customer_key):
         await update_customer_info(customer_key, payload)
     else:
         await create_customer(customer_key, payload)
     await message.answer(CONTACTING_MESSAGE)
     return 'CONTACTING'
 
-async def get_moltin_customer_id(customer_key):
+async def get_moltin_customer_id_from_db(customer_key):
     db = await get_database_connection()
     customer_id = db.get(customer_key)
     if customer_id:
