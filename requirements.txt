@@ -1,0 +1,4 @@
+python-telegram-bot==12.3.0
+python-dotenv==0.10.5
+aiogram==2.6.1
+redis==3.4.1
