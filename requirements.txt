@@ -1,4 +1,5 @@
 python-telegram-bot==12.3.0
 python-dotenv==0.10.5
+requests==2.23.0
 aiogram==2.6.1
 redis==3.4.1
