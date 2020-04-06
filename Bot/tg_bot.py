@@ -59,6 +59,7 @@ async def handle_user_reply(update):
     state_handler = states_functions[user_state]
     next_state = await state_handler(update)
     db.set(chat_id, next_state)
+    tg_logger.debug(f'User «{chat_id}» state changed to {next_state}')
 
 async def get_database_connection():
     global _database
@@ -67,6 +68,7 @@ async def get_database_connection():
         database_host = os.getenv('DB_HOST')
         database_port = os.getenv('DB_PORT')
         _database = redis.Redis(host=database_host, port=database_port, password=database_password)
+        tg_logger.debug('Got new db connection')
     return _database
 
 async def handle_update(update):
@@ -92,6 +94,7 @@ async def start(message: types.Message):
 async def send_menu(message: types.Message):
     keyboard = await collect_menu_keyboard()
     await message.answer('Choose goods:', reply_markup=keyboard)
+    tg_logger.debug(f'Menu was sent to {message.chat.id}')
 
 async def collect_menu_keyboard():
     products = molt.make_get_request('products')
@@ -99,6 +102,7 @@ async def collect_menu_keyboard():
     for product in products:
         keyboard.insert(InlineKeyboardButton(product['name'], callback_data=product['id']))
     keyboard.add(CART_BUTTON)
+    tg_logger.debug(f'Menu keyboard was collected')
     return keyboard
 
 async def handle_menu(callback_query: types.CallbackQuery):
@@ -122,6 +126,7 @@ async def handle_menu(callback_query: types.CallbackQuery):
     await bot.send_photo(callback_query.message.chat.id, image_url, caption=text, reply_markup=keyboard)
     await delete_bot_message(callback_query)
     return 'HANDLE_DESCRIPTION'
+    tg_logger.debug(f'{product_info['name']} description was sent')
 
 async def send_cart(callback_query):
     keyboard = InlineKeyboardMarkup(row_width=2).add(MENU_BUTTON)
@@ -130,11 +135,13 @@ async def send_cart(callback_query):
     cart_items = molt.get_cart_items(cart_name)
     if not cart_items:
         text = 'You don\'t have any items in your cart.'
+        tg_logger.debug(f'Got empty cart for {chat_id}')
     else:
         keyboard.insert(InlineKeyboardButton('Pay', callback_data='pay'))
         text, keyboard = await collect_full_cart(cart_items, cart_name, keyboard)
     await callback_query.answer('Cart')
     await bot.send_message(chat_id, text, reply_markup=keyboard)
+    tg_logger.debug(f'Cart was sent to {chat_id}')
 
 async def collect_full_cart(cart_items, cart_name, keyboard):
     text = 'In your cart:\n\n'
@@ -150,6 +157,7 @@ async def collect_full_cart(cart_items, cart_name, keyboard):
         ''')
         keyboard.add(InlineKeyboardButton(f'Remove {product_name}', callback_data=item_id))
     text += f'Total: {total_price}'
+    tg_logger.debug(f'Cart was collected')
     return text, keyboard
 
 async def delete_bot_message(update):
@@ -157,6 +165,7 @@ async def delete_bot_message(update):
         await bot.delete_message(update.chat.id, update.message_id)
     elif type(update) == types.CallbackQuery:
         await bot.delete_message(update.message.chat.id, update.message.message_id)
+    tg_logger.debug('Previous bot message was deleted')
 
 async def collect_product_description_keyboard(product_id):
     keyboard = InlineKeyboardMarkup()
@@ -167,6 +176,7 @@ async def collect_product_description_keyboard(product_id):
     )
     keyboard.add(MENU_BUTTON)
     keyboard.add(CART_BUTTON)
+    tg_logger.debug(f'Description keyboard was collected')
     return keyboard
 
 async def handle_description(callback_query: types.CallbackQuery):
@@ -193,6 +203,7 @@ async def handle_cart(callback_query: types.CallbackQuery):
         text = 'Send your email, please'
         await callback_query.answer(text)
         await bot.send_message(callback_query.message.chat.id, text)
+        tg_logger.debug(f'Start payment conversation')
         return 'WAITING_EMAIL'
     else:
         molt.remove_item_from_cart(f'tg-{callback_query.message.chat.id}', callback_query.data)
@@ -213,6 +224,7 @@ async def handle_email(message: types.Message):
     }
     if await get_moltin_customer_id_from_db(customer_key):
         await update_customer_info(customer_key, payload)
+        tg_logger.debug(f'')
     else:
         await create_customer(customer_key, payload)
     await message.answer(CONTACTING_MESSAGE)
@@ -223,17 +235,20 @@ async def get_moltin_customer_id_from_db(customer_key):
     customer_id = db.get(customer_key)
     if customer_id:
         customer_id = customer_id.decode('utf-8')
+    tg_logger.debug(f'Got moltin customer id «{customer_id}» from db')
     return customer_id
 
 async def update_customer_info(customer_key, payload):
     db = await get_database_connection()
     customer_id = db.get(customer_key).decode('utf-8')
     molt.make_put_request(f'customers/{customer_id}', payload)
+    tg_logger.debug(f')
 
 async def create_customer(customer_key, payload):
     db = await get_database_connection()
     customer_id = molt.make_post_request('customers', payload)['data']['id']
     db.set(customer_key, customer_id)
+    tg_logger.debug(f'New customer «{customer_key}» was created')
 
 async def handle_contacting(update):
     if type(update) == types.Message:
@@ -247,11 +262,13 @@ async def handle_contacting(update):
 
 async def handle_message_while_contacting(message):
     if message.text.lower() == 'change email':
+        tg_logger.debug(f'Got request for email change')
         return 'WAITING_EMAIL', 'Send your email, please'
     elif message.text == '/cancel':
         molt.delete_cart(f'tg-{message.chat.id}')
         return 'START', 'Order cancelled. Send /start to choose goods'
     else:
+        tg_logger.warning(f'While conatcing got message: {message.text}')
         return 'CONTACTING', CONTACTING_MESSAGE
 
 
