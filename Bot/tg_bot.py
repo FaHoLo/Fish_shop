@@ -220,7 +220,9 @@ async def handle_email(message: types.Message):
 
 async def get_moltin_customer_id(customer_key):
     db = await get_database_connection()
-    customer_id = db.get(customer_key).decode('utf-8')
+    customer_id = db.get(customer_key)
+    if customer_id:
+        customer_id = customer_id.decode('utf-8')
     return customer_id
 
 async def update_customer_info(customer_key, payload):
