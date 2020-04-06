@@ -24,10 +24,10 @@ pip install -r requirements.txt
     * Get `bot token` for the bot logger required to track bot errors. Put it in `.env` under the name `TG_LOG_BOT_TOKEN`.
     * Get your `id` from `@userinfobot` and put in `.env` as `TG_CHAT_ID`
 
-6. Get a free database on [redislabs.com] (https://redislabs.com/), get the host, port and password from the database and put them in `.env` under the names `DB_HOST`, `DB_PORT` and `DB_PASSWORD`.
+6. Get a free database on [redislabs.com](https://redislabs.com/), get the host, port and password from the database and put them in `.env` under the names `DB_HOST`, `DB_PORT` and `DB_PASSWORD`.
 
 7. Run the file `tg_bot.py`.
 
 ### Project goals
 
-This code is written for educational purposes on the online course for web developers [dvmn.org] (https://dvmn.org/).
+This code is written for educational purposes on the online course for web developers [dvmn.org](https://dvmn.org/).
