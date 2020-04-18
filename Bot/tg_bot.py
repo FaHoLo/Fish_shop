@@ -48,7 +48,7 @@ async def handle_user_reply(update):
     chat_id, user_reply = await handle_update(update)
     user_state = await get_user_state(chat_id, user_reply, db)
     states_functions = {
-        'START': start,
+        'START': handle_start,
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': handle_description,
         'HANDLE_CART': handle_cart,
@@ -87,7 +87,7 @@ async def get_user_state(chat_id, user_reply, db):
         user_state = db.get(chat_id).decode('utf-8')
     return user_state
 
-async def start(message: types.Message):
+async def handle_start(message: types.Message):
     await send_menu(message)
     return 'HANDLE_MENU'
 
