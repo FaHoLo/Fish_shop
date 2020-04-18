@@ -16,11 +16,15 @@ def get_file_info(file_id):
     method = f'files/{file_id}'
     return moltin_requests.make_get_request(method)
 
-def create_customer(payload):
+def create_customer(customer_info):
+    payload = {'data':{'type': 'customer'}}
+    payload['data'].update(customer_info)
     method = 'customers'
     return moltin_requests.make_post_request('customers', payload)
 
-def update_customer_info(customer_id, payload):
+def update_customer_info(customer_id, customer_info):
+    payload = {'data':{'type': 'customer'}}
+    payload['data'].update(customer_info)
     method = f'customers/{customer_id}'
     return moltin_requests.make_put_request(method, payload)
 

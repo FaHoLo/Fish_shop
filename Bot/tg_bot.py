@@ -215,17 +215,14 @@ async def handle_email(message: types.Message):
     customer_email = message.text
     customer_id = f'tg-{message.from_user.id}'
     customer_key = f'customer_id-{customer_id}'
-    payload = {
-        'data': {
-            'type': 'customer',
-            'name': customer_id,
-            'email': customer_email,
-        }
+    customer_info = {
+        'name': customer_id,
+        'email': customer_email,
     }
     if await get_moltin_customer_id_from_db(customer_key):
-        await update_customer_info(customer_key, payload)
+        await update_customer_info(customer_key, customer_info)
     else:
-        await create_customer(customer_key, payload)
+        await create_customer(customer_key, customer_info)
     await message.answer(CONTACTING_MESSAGE)
     return 'CONTACTING'
 
@@ -237,15 +234,15 @@ async def get_moltin_customer_id_from_db(customer_key):
     tg_logger.debug(f'Got moltin customer id «{customer_id}» from db')
     return customer_id
 
-async def update_customer_info(customer_key, payload):
+async def update_customer_info(customer_key, customer_info):
     db = await get_database_connection()
     customer_id = db.get(customer_key).decode('utf-8')
-    molt.update_customer(customer_id, payload)
+    molt.update_customer(customer_id, customer_info)
     tg_logger.debug(f'Customer «{customer_id}» info was updated')
 
-async def create_customer(customer_key, payload):
+async def create_customer(customer_key, customer_info):
     db = await get_database_connection()
-    customer_id = molt.create_customer(payload)['data']['id']
+    customer_id = molt.create_customer(customer_info)['data']['id']
     db.set(customer_key, customer_id)
     tg_logger.debug(f'New customer «{customer_key}» was created')
 
