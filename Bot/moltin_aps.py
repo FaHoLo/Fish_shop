@@ -4,6 +4,26 @@ import moltin_requests
 moltin_logger = logging.getLogger('moltin_loger')
 
 
+def get_all_products():
+    method = 'products'
+    return moltin_requests.make_get_request('products')
+
+def get_product_info(product_id):
+    method = f'products/{product_id}'
+    return moltin_requests.make_get_request(f'products/{callback_query.data}')
+
+def get_file_info(file_id):
+    method = f'files/{file_id}'
+    return moltin_requests.make_get_request(method)
+
+def create_customer(payload):
+    method = 'customers'
+    return moltin_requests.make_post_request('customers', payload)
+
+def update_customer_info(customer_id, payload):
+    method = f'customers/{customer_id}'
+    return moltin_requests.make_put_request(method, payload)
+
 def get_cart(cart_name):
     method = f'carts/{cart_name}'
     return moltin_requests.make_get_request(method)

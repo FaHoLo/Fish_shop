@@ -3,7 +3,6 @@ import redis
 import logging
 import log_config
 import moltin_aps as molt
-import moltin_requests
 from textwrap import dedent
 from dotenv import load_dotenv
 from requests.exceptions import HTTPError
@@ -98,7 +97,7 @@ async def send_menu(message: types.Message):
     tg_logger.debug(f'Menu was sent to {message.chat.id}')
 
 async def collect_menu_keyboard():
-    products = moltin_requests.make_get_request('products')
+    products = molt.get_all_products()
     keyboard = InlineKeyboardMarkup(row_width=2)
     for product in products:
         keyboard.insert(InlineKeyboardButton(product['name'], callback_data=product['id']))
@@ -112,9 +111,9 @@ async def handle_menu(callback_query: types.CallbackQuery):
         await delete_bot_message(callback_query)
         return 'HANDLE_CART'
 
-    product_info = moltin_requests.make_get_request(f'products/{callback_query.data}')
+    product_info = molt.get_product_info(callback_query.data)
     image_id = product_info['relationships']['main_image']['data']['id']
-    image_url = moltin_requests.make_get_request(f'files/{image_id}')['link']['href']
+    image_url = molt.get_file_info(image_id)['link']['href']
     text = dedent(f'''\
     {product_info['name']}\n
     {product_info['meta']['display_price']['with_tax']['formatted']} per kg
@@ -241,12 +240,12 @@ async def get_moltin_customer_id_from_db(customer_key):
 async def update_customer_info(customer_key, payload):
     db = await get_database_connection()
     customer_id = db.get(customer_key).decode('utf-8')
-    moltin_requests.make_put_request(f'customers/{customer_id}', payload)
+    molt.update_customer(customer_id, payload)
     tg_logger.debug(f'Customer «{customer_id}» info was updated')
 
 async def create_customer(customer_key, payload):
     db = await get_database_connection()
-    customer_id = moltin_requests.make_post_request('customers', payload)['data']['id']
+    customer_id = molt.create_customer(payload)['data']['id']
     db.set(customer_key, customer_id)
     tg_logger.debug(f'New customer «{customer_key}» was created')
 
