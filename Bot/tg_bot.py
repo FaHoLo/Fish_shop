@@ -225,7 +225,6 @@ async def handle_email(message: types.Message):
     }
     if await get_moltin_customer_id_from_db(customer_key):
         await update_customer_info(customer_key, payload)
-        tg_logger.debug(f'')
     else:
         await create_customer(customer_key, payload)
     await message.answer(CONTACTING_MESSAGE)
@@ -243,7 +242,7 @@ async def update_customer_info(customer_key, payload):
     db = await get_database_connection()
     customer_id = db.get(customer_key).decode('utf-8')
     moltin_requests.make_put_request(f'customers/{customer_id}', payload)
-    tg_logger.debug(f')
+    tg_logger.debug(f'Customer «{customer_id}» info was updated')
 
 async def create_customer(customer_key, payload):
     db = await get_database_connection()
