@@ -90,7 +90,3 @@ def delete_cart(cart_name):
     response = make_delete_request(method)
     moltin_logger.debug(f'Cart {cart_name} was deleted. Response code is:{response.status_code}')
     return response.status_code == 204
-
-
-if __name__ == '__main__':
-    main()
