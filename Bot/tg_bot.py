@@ -1,5 +1,5 @@
 import os
-import redis
+import db_aps
 import logging
 import log_config
 import moltin_aps as molt
@@ -11,7 +11,6 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-_database = None
 tg_logger = logging.getLogger('tg_logger')
 
 load_dotenv()
@@ -44,7 +43,7 @@ async def handle_message(message: types.Message):
     await handle_user_reply(message)
 
 async def handle_user_reply(update):
-    db = await get_database_connection()
+    db = await db_aps.get_database_connection()
     chat_id, user_reply = await handle_update(update)
     user_state = await get_user_state(chat_id, user_reply, db)
     states_functions = {
@@ -60,16 +59,6 @@ async def handle_user_reply(update):
     next_state = await state_handler(update)
     db.set(chat_id, next_state)
     tg_logger.debug(f'User «{chat_id}» state changed to {next_state}')
-
-async def get_database_connection():
-    global _database
-    if _database is None:
-        database_password = os.getenv('DB_PASSWORD')
-        database_host = os.getenv('DB_HOST')
-        database_port = os.getenv('DB_PORT')
-        _database = redis.Redis(host=database_host, port=database_port, password=database_password)
-        tg_logger.debug('Got new db connection')
-    return _database
 
 async def handle_update(update):
     if type(update) == types.Message:
@@ -220,32 +209,12 @@ async def handle_email(message: types.Message):
         'name': customer_id,
         'email': customer_email,
     }
-    if await get_moltin_customer_id_from_db(customer_key):
-        await update_customer_info(customer_key, customer_info)
+    if await db_aps.get_moltin_customer_id(customer_key):
+        await db_aps.update_customer_info(customer_key, customer_info)
     else:
-        await create_customer(customer_key, customer_info)
+        await db_aps.create_customer(customer_key, customer_info)
     await message.answer(CONTACTING_MESSAGE)
     return 'CONTACTING'
-
-async def get_moltin_customer_id_from_db(customer_key):
-    db = await get_database_connection()
-    customer_id = db.get(customer_key)
-    if customer_id:
-        customer_id = customer_id.decode('utf-8')
-    tg_logger.debug(f'Got moltin customer id «{customer_id}» from db')
-    return customer_id
-
-async def update_customer_info(customer_key, customer_info):
-    db = await get_database_connection()
-    customer_id = db.get(customer_key).decode('utf-8')
-    molt.update_customer_info(customer_id, customer_info)
-    tg_logger.debug(f'Customer «{customer_id}» info was updated')
-
-async def create_customer(customer_key, customer_info):
-    db = await get_database_connection()
-    customer_id = molt.create_customer(customer_info)['data']['id']
-    db.set(customer_key, customer_id)
-    tg_logger.debug(f'New customer «{customer_key}» was created')
 
 async def handle_contacting(update):
     if type(update) == types.Message:
