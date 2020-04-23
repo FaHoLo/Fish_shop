@@ -114,19 +114,20 @@ async def handle_menu(callback_query: types.CallbackQuery):
     product_info = molt.get_product_info(callback_query.data)
     image_id = product_info['relationships']['main_image']['data']['id']
     image_url = molt.get_file_info(image_id)['link']['href']
+    product_name = product_info['name']
     text = dedent(f'''\
-    {product_info['name']}\n
+    {product_name}\n
     {product_info['meta']['display_price']['with_tax']['formatted']} per kg
     {product_info['meta']['stock']['level']}kg on stock\n
     {product_info['description']}
     ''')
     keyboard = await collect_product_description_keyboard(callback_query.data)
 
-    await callback_query.answer(text=product_info['name'])
+    await callback_query.answer(text=product_name)
     await bot.send_photo(callback_query.message.chat.id, image_url, caption=text, reply_markup=keyboard)
     await delete_bot_message(callback_query)
     return 'HANDLE_DESCRIPTION'
-    tg_logger.debug(f'{product_info['name']} description was sent')
+    tg_logger.debug(f'{product_name} description was sent')
 
 async def send_cart(callback_query):
     keyboard = InlineKeyboardMarkup(row_width=2).add(MENU_BUTTON)
