@@ -1,7 +1,7 @@
 import os
 import redis
 import logging
-import moltin_aps as molt
+import moltin_aps
 
 
 _database = None
@@ -30,11 +30,11 @@ async def get_moltin_customer_id(customer_key):
 async def update_customer_info(customer_key, customer_info):
     db = await get_database_connection()
     customer_id = db.get(customer_key).decode('utf-8')
-    molt.update_customer_info(customer_id, customer_info)
+    moltin_aps.update_customer_info(customer_id, customer_info)
     db_logger.debug(f'Customer «{customer_id}» info was updated')
 
 async def create_customer(customer_key, customer_info):
     db = await get_database_connection()
-    customer_id = molt.create_customer(customer_info)['data']['id']
+    customer_id = moltin_aps.create_customer(customer_info)['data']['id']
     db.set(customer_key, customer_id)
     db_logger.debug(f'New customer «{customer_key}» was created')

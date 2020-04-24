@@ -2,7 +2,7 @@ import os
 import db_aps
 import logging
 import log_config
-import moltin_aps as molt
+import moltin_aps
 from textwrap import dedent
 from dotenv import load_dotenv
 from requests.exceptions import HTTPError
@@ -86,7 +86,7 @@ async def send_menu(message: types.Message):
     tg_logger.debug(f'Menu was sent to {message.chat.id}')
 
 async def collect_menu_keyboard():
-    products = molt.get_all_products()
+    products = moltin_aps.get_all_products()
     keyboard = InlineKeyboardMarkup(row_width=2)
     for product in products:
         keyboard.insert(InlineKeyboardButton(product['name'], callback_data=product['id']))
@@ -100,9 +100,9 @@ async def handle_menu(callback_query: types.CallbackQuery):
         await delete_bot_message(callback_query)
         return 'HANDLE_CART'
 
-    product_info = molt.get_product_info(callback_query.data)
+    product_info = moltin_aps.get_product_info(callback_query.data)
     image_id = product_info['relationships']['main_image']['data']['id']
-    image_url = molt.get_file_info(image_id)['link']['href']
+    image_url = moltin_aps.get_file_info(image_id)['link']['href']
     product_name = product_info['name']
     text = dedent(f'''\
     {product_name}\n
@@ -122,7 +122,7 @@ async def send_cart(callback_query):
     keyboard = InlineKeyboardMarkup(row_width=2).add(MENU_BUTTON)
     cart_name = f'tg-{callback_query.message.chat.id}'
     chat_id = callback_query.message.chat.id
-    cart_items = molt.get_cart_items(cart_name)
+    cart_items = moltin_aps.get_cart_items(cart_name)
     if not cart_items:
         text = 'You don\'t have any items in your cart.'
         tg_logger.debug(f'Got empty cart for {chat_id}')
@@ -136,7 +136,7 @@ async def send_cart(callback_query):
 async def collect_full_cart(cart_items, cart_name, keyboard):
     text = 'In your cart:\n\n'
     for item in cart_items:
-        total_price = molt.get_cart(cart_name)['meta']['display_price']['with_tax']['formatted']
+        total_price = moltin_aps.get_cart(cart_name)['meta']['display_price']['with_tax']['formatted']
         product_name = item['name']
         item_id = item['id']
         text += dedent(f'''\
@@ -180,7 +180,7 @@ async def handle_description(callback_query: types.CallbackQuery):
         return 'HANDLE_CART'
     else:
         product_id, number_of_kilos = callback_query.data.split(',')
-        molt.add_product_to_cart(f'tg-{callback_query.message.chat.id}', product_id, int(number_of_kilos))
+        moltin_aps.add_product_to_cart(f'tg-{callback_query.message.chat.id}', product_id, int(number_of_kilos))
         await callback_query.answer(f'{number_of_kilos} kg added to cart')
         return 'HANDLE_DESCRIPTION'
 
@@ -196,7 +196,7 @@ async def handle_cart(callback_query: types.CallbackQuery):
         tg_logger.debug(f'Start payment conversation')
         return 'WAITING_EMAIL'
     else:
-        molt.remove_item_from_cart(f'tg-{callback_query.message.chat.id}', callback_query.data)
+        moltin_aps.remove_item_from_cart(f'tg-{callback_query.message.chat.id}', callback_query.data)
         await send_cart(callback_query)
         await delete_bot_message(callback_query)
     return 'HANDLE_CART'
@@ -231,7 +231,7 @@ async def handle_message_while_contacting(message):
         tg_logger.debug(f'Got request for email change')
         return 'WAITING_EMAIL', 'Send your email, please'
     elif message.text == '/cancel':
-        molt.delete_cart(f'tg-{message.chat.id}')
+        moltin_aps.delete_cart(f'tg-{message.chat.id}')
         return 'START', 'Order cancelled. Send /start to choose goods'
     else:
         tg_logger.warning(f'While conatcing got message: {message.text}')
