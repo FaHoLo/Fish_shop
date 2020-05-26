@@ -1,14 +1,14 @@
-import os
-import db_aps
 import logging
-import log_config
-import moltin_aps
+import os
 from textwrap import dedent
-from dotenv import load_dotenv
-from requests.exceptions import HTTPError
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from dotenv import load_dotenv
+
+import db_aps
+import log_config
+import moltin_aps
 
 
 tg_logger = logging.getLogger('tg_logger')
@@ -34,13 +34,16 @@ def main():
     )
     executor.start_polling(dp)
 
+
 @dp.callback_query_handler(lambda callback_query: True)
 async def handle_callback_query(callback_query: types.CallbackQuery):
     await handle_user_reply(callback_query)
 
+
 @dp.message_handler()
 async def handle_message(message: types.Message):
     await handle_user_reply(message)
+
 
 async def handle_user_reply(update):
     db = await db_aps.get_database_connection()
@@ -60,6 +63,7 @@ async def handle_user_reply(update):
     db.set(chat_id, next_state)
     tg_logger.debug(f'User «{chat_id}» state changed to {next_state}')
 
+
 async def handle_update(update):
     if type(update) == types.Message:
         chat_id = f'tg-{update.chat.id}'
@@ -69,6 +73,7 @@ async def handle_update(update):
         user_reply = update.data
     return chat_id, user_reply
 
+
 async def get_user_state(chat_id, user_reply, db):
     if user_reply == '/start':
         user_state = 'START'
@@ -76,14 +81,17 @@ async def get_user_state(chat_id, user_reply, db):
         user_state = db.get(chat_id).decode('utf-8')
     return user_state
 
+
 async def handle_start(message: types.Message):
     await send_menu(message)
     return 'HANDLE_MENU'
+
 
 async def send_menu(message: types.Message):
     keyboard = await collect_menu_keyboard()
     await message.answer('Choose goods:', reply_markup=keyboard)
     tg_logger.debug(f'Menu was sent to {message.chat.id}')
+
 
 async def collect_menu_keyboard():
     products = moltin_aps.get_all_products()
@@ -91,8 +99,9 @@ async def collect_menu_keyboard():
     for product in products:
         keyboard.insert(InlineKeyboardButton(product['name'], callback_data=product['id']))
     keyboard.add(CART_BUTTON)
-    tg_logger.debug(f'Menu keyboard was collected')
+    tg_logger.debug('Menu keyboard was collected')
     return keyboard
+
 
 async def handle_menu(callback_query: types.CallbackQuery):
     if callback_query.data == 'cart':
@@ -118,6 +127,7 @@ async def handle_menu(callback_query: types.CallbackQuery):
     return 'HANDLE_DESCRIPTION'
     tg_logger.debug(f'{product_name} description was sent')
 
+
 async def send_cart(callback_query):
     keyboard = InlineKeyboardMarkup(row_width=2).add(MENU_BUTTON)
     cart_name = f'tg-{callback_query.message.chat.id}'
@@ -133,6 +143,7 @@ async def send_cart(callback_query):
     await bot.send_message(chat_id, text, reply_markup=keyboard)
     tg_logger.debug(f'Cart was sent to {chat_id}')
 
+
 async def collect_full_cart(cart_items, cart_name, keyboard):
     text = 'In your cart:\n\n'
     for item in cart_items:
@@ -147,8 +158,9 @@ async def collect_full_cart(cart_items, cart_name, keyboard):
         ''')
         keyboard.add(InlineKeyboardButton(f'Remove {product_name}', callback_data=item_id))
     text += f'Total: {total_price}'
-    tg_logger.debug(f'Cart was collected')
+    tg_logger.debug('Cart was collected')
     return text, keyboard
+
 
 async def delete_bot_message(update):
     if type(update) == types.Message:
@@ -156,6 +168,7 @@ async def delete_bot_message(update):
     elif type(update) == types.CallbackQuery:
         await bot.delete_message(update.message.chat.id, update.message.message_id)
     tg_logger.debug('Previous bot message was deleted')
+
 
 async def collect_product_description_keyboard(product_id):
     keyboard = InlineKeyboardMarkup()
@@ -166,8 +179,9 @@ async def collect_product_description_keyboard(product_id):
     )
     keyboard.add(MENU_BUTTON)
     keyboard.add(CART_BUTTON)
-    tg_logger.debug(f'Description keyboard was collected')
+    tg_logger.debug('Description keyboard was collected')
     return keyboard
+
 
 async def handle_description(callback_query: types.CallbackQuery):
     if callback_query.data == 'menu':
@@ -184,6 +198,7 @@ async def handle_description(callback_query: types.CallbackQuery):
         await callback_query.answer(f'{number_of_kilos} kg added to cart')
         return 'HANDLE_DESCRIPTION'
 
+
 async def handle_cart(callback_query: types.CallbackQuery):
     if callback_query.data == 'menu':
         await send_menu(callback_query.message)
@@ -193,13 +208,14 @@ async def handle_cart(callback_query: types.CallbackQuery):
         text = 'Send your email, please'
         await callback_query.answer(text)
         await bot.send_message(callback_query.message.chat.id, text)
-        tg_logger.debug(f'Start payment conversation')
+        tg_logger.debug('Start payment conversation')
         return 'WAITING_EMAIL'
     else:
         moltin_aps.remove_item_from_cart(f'tg-{callback_query.message.chat.id}', callback_query.data)
         await send_cart(callback_query)
         await delete_bot_message(callback_query)
     return 'HANDLE_CART'
+
 
 async def handle_email(message: types.Message):
     customer_email = message.text
@@ -216,6 +232,7 @@ async def handle_email(message: types.Message):
     await message.answer(CONTACTING_MESSAGE)
     return 'CONTACTING'
 
+
 async def handle_contacting(update):
     if type(update) == types.Message:
         state, answer = await handle_message_while_contacting(update)
@@ -226,9 +243,10 @@ async def handle_contacting(update):
         await bot.send_message(update.message.chat.id, CONTACTING_MESSAGE)
         return 'CONTACTING'
 
+
 async def handle_message_while_contacting(message):
     if message.text.lower() == 'change email':
-        tg_logger.debug(f'Got request for email change')
+        tg_logger.debug('Got request for email change')
         return 'WAITING_EMAIL', 'Send your email, please'
     elif message.text == '/cancel':
         moltin_aps.delete_cart(f'tg-{message.chat.id}')

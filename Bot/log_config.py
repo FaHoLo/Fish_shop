@@ -6,7 +6,7 @@ from telegram import Bot
 class SendToTelegramHandler(logging.Handler):
 
     def emit(self, record):
-        log_entry = self.format(record)   
+        log_entry = self.format(record)
         self.send_error_log_to_telegram(log_entry)
 
     def send_error_log_to_telegram(self, text):
@@ -28,7 +28,7 @@ def split_text_on_parts(text, message_max_length):
     while text:
         if len(text) <= message_max_length:
             parts.append(text)
-            break    
+            break
         part = text[:message_max_length]
         first_lnbr = part.rfind('\n')
         if first_lnbr != -1:
