@@ -225,10 +225,10 @@ async def handle_email(message: types.Message):
         'name': customer_id,
         'email': customer_email,
     }
-    if await db_aps.get_moltin_customer_id(customer_key):
-        await db_aps.update_customer_info(customer_key, customer_info)
+    if db_aps.get_moltin_customer_id(customer_key):
+        db_aps.update_customer_info(customer_key, customer_info)
     else:
-        await db_aps.create_customer(customer_key, customer_info)
+        db_aps.create_customer(customer_key, customer_info)
     await message.answer(CONTACTING_MESSAGE)
     return 'CONTACTING'
 
